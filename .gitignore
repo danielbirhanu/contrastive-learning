@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Environment
+.venv/
+.env
+
+# Project specific
+data/
+models/
+results/
+checkpoints/
+
+# System
+.DS_Store
