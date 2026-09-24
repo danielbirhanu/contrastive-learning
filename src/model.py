@@ -3,11 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class SimpleCNNEncoder(nn.Module):
-    """
-    A simple CNN encoder f(x) -> h for MNIST.
-    Input: (B, 1, 28, 28)
-    Output: (B, hidden_dim) where hidden_dim is the representation size.
-    """
+    """Simple CNN encoder f(x) -> h for MNIST."""
     def __init__(self, hidden_dim=128):
         super().__init__()
         self.conv_blocks = nn.Sequential(
@@ -25,14 +21,10 @@ class SimpleCNNEncoder(nn.Module):
         return h
 
 class ProjectionHead(nn.Module):
-    """
-    A small MLP projection head g(h) -> z.
-    Input: (B, hidden_dim)
-    Output: (B, out_dim)
-    """
+    """MLP projection head g(h) -> z."""
     def __init__(self, hidden_dim=128, out_dim=64):
         super().__init__()
-        # SimCLR typically uses a 2-layer MLP with ReLU in between
+        # 2-layer MLP with ReLU
         self.net = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
@@ -43,9 +35,7 @@ class ProjectionHead(nn.Module):
         return self.net(h)
 
 class ContrastiveModel(nn.Module):
-    """
-    Combines the encoder and the projection head, and applies L2 normalization.
-    """
+    """Combines encoder, projection head, and L2 normalization."""
     def __init__(self, hidden_dim=128, out_dim=64, use_projection_head=True):
         super().__init__()
         self.encoder = SimpleCNNEncoder(hidden_dim=hidden_dim)
@@ -63,8 +53,7 @@ class ContrastiveModel(nn.Module):
         # 2. Pass through projection head
         z = self.head(h)
         
-        # 3. L2 normalize the output
-        # F.normalize computes z / ||z||_2 along the specified dimension (dim=1 is the feature dimension)
+        # 3. L2 normalize output
         z_normalized = F.normalize(z, p=2, dim=1)
         
         return h, z_normalized

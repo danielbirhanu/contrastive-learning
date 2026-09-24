@@ -11,7 +11,7 @@ from src.utils import set_seed
 def run_evaluation(model_path, use_projection_head):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # We evaluate on 5000 samples for the evaluation dataloaders
+    # Evaluate on 5000 samples
     train_loader, test_loader, _, _ = get_dataloaders(batch_size=256, subset_size=5000, strength="weak")
     
     model = ContrastiveModel(use_projection_head=use_projection_head).to(device)
@@ -28,8 +28,7 @@ def run_evaluation(model_path, use_projection_head):
 def run_all_experiments():
     set_seed(42)
     
-    # Due to CPU constraints and needing to run 5 experiments sequentially,
-    # we aggressively reduce the training subset to 2,500 and epochs to 3.
+    # Reduce subset to 2500 and epochs to 3 for faster CPU execution
     subset_size = 2500
     epochs = 3
     

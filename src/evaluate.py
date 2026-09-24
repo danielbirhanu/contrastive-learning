@@ -12,9 +12,7 @@ from src.model import ContrastiveModel
 from src.utils import set_seed
 
 def extract_embeddings(model, dataloader, device):
-    """
-    Extracts the representations 'h' and their corresponding labels.
-    """
+    """Extracts representations 'h' and labels."""
     model.eval()
     embeddings = []
     labels = []
@@ -27,7 +25,7 @@ def extract_embeddings(model, dataloader, device):
                 x, target = batch
             
             x = x.to(device)
-            # We ONLY want the encoder output 'h', not the projected 'z'
+            # Get encoder output 'h', ignore projected 'z'
             h, _ = model(x)
             embeddings.append(h.cpu())
             labels.append(target)
@@ -38,41 +36,35 @@ def extract_embeddings(model, dataloader, device):
     return embeddings, labels
 
 def compute_knn_accuracy(train_embs, train_labels, test_embs, test_labels, k=5):
-    """
-    Trains a k-NN classifier on the embeddings and returns the test accuracy.
-    """
+    """Trains k-NN classifier and returns test accuracy."""
     knn = KNeighborsClassifier(n_neighbors=k)
     knn.fit(train_embs, train_labels)
     acc = knn.score(test_embs, test_labels)
     return acc
 
 def compute_similarity_metrics(embs, labels):
-    """
-    Computes the average cosine similarity between embeddings of the SAME class,
-    and embeddings of DIFFERENT classes, returning the gap.
-    """
-    # For speed on CPU, we sample a subset if it's too large, but 10k is fine
-    # Actually to be safe on memory for an N x N matrix, we use 2000 samples
+    """Computes average cosine similarity for same and different classes, and their gap."""
+    
     idx = np.random.choice(len(embs), min(2000, len(embs)), replace=False)
     embs_sub = embs[idx]
     labels_sub = labels[idx]
     
-    # L2 Normalize for cosine similarity
+    # L2 normalize
     embs_sub = embs_sub / np.linalg.norm(embs_sub, axis=1, keepdims=True)
     
-    # Compute full N x N similarity matrix
+    # Compute similarity matrix
     sim_matrix = cosine_similarity(embs_sub)
     
     # Create masks
     labels_matrix = labels_sub.reshape(-1, 1) == labels_sub.reshape(1, -1)
     
-    # Remove the diagonal (self-similarity)
+    # Remove self-similarity
     np.fill_diagonal(labels_matrix, False)
     
     same_class_sims = sim_matrix[labels_matrix]
     diff_class_sims = sim_matrix[~labels_matrix]
     
-    # Ignore diagonal from diff_class_sims as well (it's implicitly ignored because diagonal is True in original condition, but we set it False. Wait, if diagonal is False, it goes into diff_class. Let's fix that)
+    # Remove diagonal from different class mask
     diag_mask = np.eye(len(labels_sub), dtype=bool)
     diff_class_mask = (~labels_matrix) & (~diag_mask)
     diff_class_sims = sim_matrix[diff_class_mask]
@@ -87,7 +79,7 @@ def plot_pca(embs_untrained, embs_trained, labels, save_path="results/pca_compar
     """
     Plots PCA of untrained vs trained embeddings.
     """
-    # We plot the first 1000 samples for visual clarity
+    # Plot 1000 samples
     idx = np.random.choice(len(embs_trained), 1000, replace=False)
     
     pca_untrained = PCA(n_components=2).fit_transform(embs_untrained[idx])
@@ -112,12 +104,10 @@ def evaluate():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # 1. Load Data
-    # For evaluation, we extract features for the train subset (to fit k-NN)
-    # and the test dataset (to evaluate k-NN).
     train_loader, test_loader, _, _ = get_dataloaders(batch_size=256, subset_size=5000)
     
     # 2. Setup Models
-    # Model A: Untrained (random initialized)
+    # Model A: Untrained
     model_untrained = ContrastiveModel(use_projection_head=False).to(device)
     
     # Model B: Trained

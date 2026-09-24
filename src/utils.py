@@ -3,17 +3,12 @@ import numpy as np
 import torch
 
 def set_seed(seed: int = 42):
-    """
-    Sets the random seed for reproducibility across Python, NumPy, and PyTorch.
-    
-    Args:
-        seed (int): The seed value to use. Default is 42.
-    """
+    """Sets random seed for reproducibility."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     
-    # In case we ever use CUDA later (though this project is CPU-only)
+    # Set CUDA seed
     if torch.cuda.is_available():
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)

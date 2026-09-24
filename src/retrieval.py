@@ -10,43 +10,35 @@ from src.evaluate import extract_embeddings, compute_similarity_metrics
 from src.utils import set_seed
 
 def compute_recall_at_k(embs, labels, k=5):
-    """
-    Computes Recall@k.
-    Recall@k definition: The percentage of query images for which at least ONE 
-    of the top-k retrieved images belongs to the same ground-truth class.
-    We exclude the image itself (the top-1 result) from the retrieval pool.
-    """
+    """Computes Recall@k, excluding the query image itself."""
     # L2 normalize
     embs = embs / np.linalg.norm(embs, axis=1, keepdims=True)
     
     # Compute full N x N similarity matrix
     sim_matrix = cosine_similarity(embs)
     
-    # We don't want to retrieve the image itself, so set diagonal to -infinity
+    # Mask self-similarity
     np.fill_diagonal(sim_matrix, -np.inf)
     
-    # Get indices of top-k similar images for each query
-    # np.argsort sorts ascending, so we take the last k, then reverse to get descending
+    # Get indices of top-k similar images
     top_k_indices = np.argsort(sim_matrix, axis=1)[:, -k:][:, ::-1]
     
-    # Check if the labels of the retrieved images match the query label
+    # Check retrieved labels against query labels
     query_labels = labels.reshape(-1, 1)
     retrieved_labels = labels[top_k_indices]
     
-    # boolean matrix of shape (N, k) where True means class match
+    # Class match matrix (N, k)
     matches = (retrieved_labels == query_labels)
     
-    # For each query, is there AT LEAST ONE match in the top k? (True/False)
+    # Check if any match in top k
     hit_at_k = np.any(matches, axis=1)
     
-    # Recall@k is the mean of these hits
+    # Compute recall
     recall = np.mean(hit_at_k)
     return recall
 
 def plot_retrieval_examples(images, embs_u, embs_t, labels, num_examples=3, save_path="results/retrieval_examples.png"):
-    """
-    Plots qualitative retrieval examples: Query | Top-5 Untrained | Top-5 Trained
-    """
+    """Plots qualitative retrieval examples."""
     # Normalize for cosine similarity
     embs_u = embs_u / np.linalg.norm(embs_u, axis=1, keepdims=True)
     embs_t = embs_t / np.linalg.norm(embs_t, axis=1, keepdims=True)
@@ -124,10 +116,10 @@ def run_retrieval_system():
     set_seed(42)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # We use a subset of 2000 test images as both our queries and our gallery
+    # Use 2000 test images for queries and gallery
     _, test_loader, _, _ = get_dataloaders(batch_size=256, subset_size=2000, strength="weak")
     
-    # Also grab the raw images for visualization
+    # Load raw images for visualization
     all_images = []
     for x, target in test_loader:
         all_images.append(x)
@@ -149,7 +141,7 @@ def run_retrieval_system():
     print(f"Untrained Recall@5: {recall_u * 100:.2f}%")
     print(f"Trained Recall@5:   {recall_t * 100:.2f}%")
     
-    # 2. k-NN Accuracy (using test set as both train/test for simple gallery evaluation)
+    # 2. k-NN Accuracy (Gallery Self-Eval)
     print("\n--- Metric 2: k-NN Accuracy (Gallery Self-Eval) ---")
     knn_u = KNeighborsClassifier(n_neighbors=5).fit(embs_u, labels_u).score(embs_u, labels_u)
     knn_t = KNeighborsClassifier(n_neighbors=5).fit(embs_t, labels_t).score(embs_t, labels_t)

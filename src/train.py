@@ -38,7 +38,7 @@ def train(
     criterion = InfoNCELoss(temperature=temperature)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     
-    # Track parameter updates during sanity check
+    # Track parameter updates
     if sanity_check:
         initial_params = [p.clone().detach() for p in model.parameters()]
         
@@ -49,7 +49,7 @@ def train(
         model.train()
         running_loss = 0.0
         
-        # Use tqdm for progress bar if not in sanity check (keep logs clean)
+        # Progress bar
         pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{epochs}")
         
         for batch_idx, (x1, x2, _) in enumerate(pbar):
@@ -63,7 +63,7 @@ def train(
             # Compute loss
             loss = criterion(z1, z2)
             
-            # Backward pass & update
+            # Backward pass
             loss.backward()
             optimizer.step()
             
@@ -71,7 +71,7 @@ def train(
             pbar.set_postfix({"loss": f"{loss.item():.4f}"})
             
             if sanity_check and batch_idx == 5:
-                # Stop early for sanity check after a few batches
+                # Early stop for sanity check
                 break
                 
         avg_loss = running_loss / (batch_idx + 1)
@@ -82,7 +82,7 @@ def train(
             break
             
     if sanity_check:
-        # Verify parameters actually updated
+        # Verify parameter updates
         has_updated = False
         for p_init, p_curr in zip(initial_params, model.parameters()):
             if not torch.allclose(p_init, p_curr):
@@ -90,13 +90,13 @@ def train(
                 break
         assert has_updated, "Sanity Check Failed: Model parameters did not update during training!"
         
-        # Verify loss decreased (rough check: first batch vs last average)
+        # Verify loss decreased
         print("\n✓ Sanity Check Passed: Parameters are updating and loss is flowing.")
         return
         
     # 4. Save Model & Plot
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    # We typically just save the encoder weights for downstream tasks
+    # Save encoder weights
     torch.save(model.encoder.state_dict(), save_path)
     print(f"Saved encoder weights to {save_path}")
     

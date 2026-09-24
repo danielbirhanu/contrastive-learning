@@ -18,7 +18,7 @@ def analyze_geometry():
     # Untrained Model
     model_untrained = ContrastiveModel(use_projection_head=False).to(device)
     
-    # Trained Model (from Phase 4, saved as models/encoder.pth)
+    # Trained Model
     model_trained = ContrastiveModel(use_projection_head=False).to(device)
     model_trained.encoder.load_state_dict(torch.load("models/encoder.pth", map_location=device, weights_only=True))
     
@@ -26,11 +26,11 @@ def analyze_geometry():
     embs_u, labels_u = extract_embeddings(model_untrained, test_loader, device)
     embs_t, labels_t = extract_embeddings(model_trained, test_loader, device)
     
-    # L2 normalize embeddings for cosine distance computations
+    # L2 normalize
     embs_u = embs_u / np.linalg.norm(embs_u, axis=1, keepdims=True)
     embs_t = embs_t / np.linalg.norm(embs_t, axis=1, keepdims=True)
     
-    # 1. Embedding Variance (Is there collapse?)
+    # 1. Embedding Variance
     var_u = np.var(embs_u, axis=0).mean()
     var_t = np.var(embs_t, axis=0).mean()
     print(f"\nMean Embedding Variance (per dimension):")
@@ -59,7 +59,7 @@ def analyze_geometry():
         most_similar_idx = np.argmax(centroid_sim_matrix[i])
         max_confusions.append((c, classes[most_similar_idx], centroid_sim_matrix[i][most_similar_idx]))
         
-    # Sort to find the worst separated classes
+    # Sort worst separated classes
     max_confusions.sort(key=lambda x: x[2], reverse=True)
     
     worst_c1, worst_c2, worst_sim = max_confusions[0]
